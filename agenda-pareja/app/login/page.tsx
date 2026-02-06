@@ -73,7 +73,7 @@ export default function LoginPage() {
             </h1>
 
             <p className="max-w-xl text-white/70">
-              Podemos guardar salidas pendientes, márcalas como realizadas y arma un álbum con
+              Podemos guardar salidas pendientes, márcalas como realizadas y armar un álbum con
               reseñas y momentos lindos. Todo queda guardado en la nube para que lo volvamos a ver cuando y donde sea.
             </p>
 
