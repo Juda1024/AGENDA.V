@@ -296,7 +296,7 @@ export default function DashboardPage() {
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 backdrop-blur">
               💫 Respira Ondo
               <span className="text-white/40">·</span>
-              <span className="text-white/60">Agenda de salidas</span>
+              <span className="text-white/60">Nuestra Agenda de planes</span>
             </div>
 
             <h1 className="mt-3 text-3xl md:text-4xl font-semibold tracking-tight">
@@ -304,7 +304,7 @@ export default function DashboardPage() {
             </h1>
 
             <p className="mt-2 text-sm text-white/70 max-w-2xl">
-              Pendientes para planear. Realizadas para reseña, fotos y galería.
+              Pendientes para planear y Realizadas para reseñas, fotos y galería.
             </p>
           </div>
 
@@ -389,8 +389,8 @@ export default function DashboardPage() {
               <span className="text-white/50"> · </span>
               <span className="text-white/60">
                 {tab === "planned"
-                  ? "Crea planes bonitos y márcalos cuando se hagan."
-                  : "Deja reseña + sube fotos y abre la galería."}
+                  ? "Para crea planes bonitos y márcalos cuando los hagamos."
+                  : "Deja reseña + subir fotos y abrir la galería."}
               </span>
             </div>
 
@@ -407,8 +407,8 @@ export default function DashboardPage() {
           {!loading && list.length === 0 && (
             <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-white/70 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
               {tab === "planned"
-                ? "No tienes planes pendientes. Crea una salida ✨"
-                : "Aún no hay realizadas. Marca una como realizada y aparecerá aquí 😌"}
+                ? "No tenemos planes pendientes. Creemos una salida! ✨"
+                : "Aún no hemos realizado ninguna. En cuanto hagamos uno de los planes aparecerá aquí 😌"}
             </div>
           )}
 
@@ -524,7 +524,7 @@ export default function DashboardPage() {
         </section>
 
         <footer className="mt-10 text-xs text-white/45">
-          Respira Ondo — hecho para dos. Guardado en Supabase.
+          Respira Ondo — un lugar donde nuestros planes tomaran sentido.
         </footer>
       </div>
 
@@ -537,13 +537,13 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
-                  ✨ Reseña & fotos
+                  ✨ Reseñas & fotos
                   <span className="text-white/40">·</span>
                   <span className="text-white/60">Realizadas</span>
                 </div>
                 <div className="mt-2 text-xl font-semibold">{reviewEvent.title}</div>
                 <div className="text-sm text-white/60">
-                  Deja reseña y sube fotos sin salir del dashboard.
+                  Deja una reseña/comentario y sube fotos de nuestro plan juntos.
                 </div>
               </div>
 
@@ -559,7 +559,7 @@ export default function DashboardPage() {
               <div className="rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(0,0,0,0.10))] p-4">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-semibold">📝 Tu reseña</div>
-                  <div className="text-xs text-white/50">Se guarda en tu usuario</div>
+                  <div className="text-xs text-white/50">Se guarda para verla despues</div>
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-3">

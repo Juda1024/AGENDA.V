@@ -39,7 +39,7 @@ export default function RootLayout({
           <div className="mx-auto max-w-6xl px-3 py-3">
             <div className="flex items-center justify-between mb-2">
               <div className="text-xs text-white/80">🎵 Música</div>
-              <div className="text-[11px] text-white/50">Respira ondo</div>
+              <div className="text-[11px] text-white/50">Un espacio para nosotros</div>
             </div>
             <iframe
               style={{ borderRadius: 14 }}

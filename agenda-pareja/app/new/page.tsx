@@ -148,7 +148,7 @@ export default function NewEventPage() {
               <div>
                 <h1 className="text-3xl font-semibold tracking-tight">Crear una salida ✨</h1>
                 <p className="mt-2 text-sm text-white/70">
-                  Ponlo lindo: título, ubicación, link y una portada bonita.
+                  Pongamoslo lindo: título, ubicación, link de referencia y una portada bonita.
                 </p>
               </div>
 
@@ -183,7 +183,7 @@ export default function NewEventPage() {
                     "mt-2 w-full rounded-2xl bg-black/30 border px-4 py-3 outline-none placeholder:text-white/30",
                     titleOk ? "border-white/10" : "border-pink-200/25"
                   )}
-                  placeholder="Ej: Tour luciérnagas"
+                  placeholder="Ej: Tour a Disney"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
@@ -198,7 +198,7 @@ export default function NewEventPage() {
                     "mt-2 w-full rounded-2xl bg-black/30 border px-4 py-3 outline-none placeholder:text-white/30",
                     locOk ? "border-white/10" : "border-amber-200/25"
                   )}
-                  placeholder="Ej: Laguna Limoncocha"
+                  placeholder="Ej: Miami"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
@@ -229,7 +229,7 @@ export default function NewEventPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-semibold">📷 Portada</div>
-                    <div className="text-xs text-white/60">Obligatoria. Se verá en tus cards.</div>
+                    <div className="text-xs text-white/60">Obligatoria. Se verá en la parte principal.</div>
                   </div>
                   <div
                     className={clsx(
@@ -273,7 +273,7 @@ export default function NewEventPage() {
               </button>
 
               <div className="text-xs text-white/45">
-                Tip: una portada vertical u horizontal se adapta; la app la recorta automáticamente en la card.
+                Tip: una portada vertical u horizontal se adapta; el programa lo ajusta automaticamente.
               </div>
             </form>
           </div>
@@ -283,7 +283,7 @@ export default function NewEventPage() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-xs text-white/60">Vista previa</div>
-                <div className="text-xl font-semibold mt-1">Así se verá en tu lista</div>
+                <div className="text-xl font-semibold mt-1">Así se verá en nuestra lista</div>
               </div>
               <div className="grid place-items-center h-12 w-12 rounded-2xl border border-white/10 bg-black/20">
                 🎨
@@ -338,13 +338,13 @@ export default function NewEventPage() {
             <div className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4 text-sm text-white/70">
               <div className="font-medium text-white/80">Recomendación</div>
               <div className="mt-1">
-                Usa un link de TikTok/YouTube/Maps. Luego, cuando sea realizada, podrás
-                dejar reseña y subir fotos al álbum.
+                Usa un link de TikTok/YouTube/Maps. Luego, cuando sea realizada, podremos
+                dejar reseña y subir fotitos al álbum.
               </div>
             </div>
 
             <div className="mt-4 text-xs text-white/45">
-              Respira Ondo — crea planes con estilo ✨
+              Respira Ondo — planes unicos a nuestro estilo ✨
             </div>
           </div>
         </div>

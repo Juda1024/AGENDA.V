@@ -63,18 +63,18 @@ export default function LoginPage() {
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 backdrop-blur">
               💫 Respira Ondo
               <span className="text-white/40">·</span>
-              <span className="text-white/60">Solo para ustedes dos</span>
+              <span className="text-white/60">Solo para nosotros dos</span>
             </div>
 
             <h1 className="text-4xl md:text-5xl font-semibold leading-tight tracking-tight">
-              Una agenda para planes,
+              Una agenda para nuestros planes,
               <br />
-              <span className="text-white/80">reseñas y fotos.</span>
+              <span className="text-white/80">reseñas y fotitos.</span>
             </h1>
 
             <p className="max-w-xl text-white/70">
-              Guarda salidas pendientes, márcalas como realizadas y arma un álbum con
-              reseñas y momentos. Todo queda guardado en la nube.
+              Podemos guardar salidas pendientes, márcalas como realizadas y arma un álbum con
+              reseñas y momentos lindos. Todo queda guardado en la nube para que lo volvamos a ver cuando y donde sea.
             </p>
 
             <div className="grid gap-3 sm:grid-cols-3">
@@ -88,7 +88,7 @@ export default function LoginPage() {
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
                 <div className="text-sm font-semibold">📸 Álbum</div>
-                <div className="mt-1 text-xs text-white/60">Galería en grande.</div>
+                <div className="mt-1 text-xs text-white/60">Galería de recuerditos.</div>
               </div>
             </div>
 
@@ -163,13 +163,13 @@ export default function LoginPage() {
                 </button>
 
                 <div className="text-xs text-white/50">
-                  Si quieres cambiar contraseñas, hazlo en Supabase → Authentication → Users.
+                  Si quieres cambiar contraseña lo podemos hacer.
                 </div>
               </form>
             </div>
 
             <div className="mt-4 text-xs text-white/45 text-center">
-              Respira Ondo — planes bonitos, recuerdos mejor.
+              Respira Ondo — planes bonitos, recuerdos aun mas bonitos.
             </div>
           </section>
         </div>
