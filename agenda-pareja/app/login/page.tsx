@@ -8,6 +8,12 @@ function clsx(...arr: Array<string | false | undefined | null>) {
   return arr.filter(Boolean).join(" ");
 }
 
+function nameFromEmail(email: string) {
+  const base = email.split("@")[0]?.trim();
+  if (!base) return "Usuario";
+  return base.charAt(0).toUpperCase() + base.slice(1);
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -15,6 +21,28 @@ export default function LoginPage() {
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  async function ensureProfileExists() {
+    const { data } = await supabase.auth.getUser();
+    const user = data.user;
+    if (!user) return;
+
+    // si ya existe, no tocamos nada
+    const { data: prof, error } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!error && prof?.id) return;
+
+    const displayName = nameFromEmail(user.email ?? "");
+    await supabase.from("profiles").insert({
+      id: user.id,
+      display_name: displayName,
+      avatar_url: null,
+    });
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,13 +58,17 @@ export default function LoginPage() {
       email: email.trim(),
       password,
     });
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       setMsg("Credenciales incorrectas. Revisa email/clave.");
       return;
     }
 
+    // asegurar perfil (no rompe si ya existe)
+    await ensureProfileExists();
+
+    setLoading(false);
     router.push("/dashboard");
   }
 
@@ -103,7 +135,6 @@ export default function LoginPage() {
           {/* Lado derecho: Card login */}
           <section className="lg:justify-self-end w-full max-w-md">
             <div className="relative rounded-[30px] border border-white/12 bg-white/7 p-6 backdrop-blur shadow-[0_22px_70px_rgba(0,0,0,0.55)] overflow-hidden">
-              {/* inner highlight */}
               <div className="pointer-events-none absolute -inset-1 opacity-60 blur-2xl bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.25),transparent_55%)]" />
               <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(255,102,196,0.18),transparent_60%)] blur-2xl" />
               <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(72,219,251,0.16),transparent_60%)] blur-2xl" />

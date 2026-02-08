@@ -36,8 +36,8 @@ export default function RootLayout({
 
         {/* Spotify fijo abajo, siempre visible */}
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-black/40 backdrop-blur">
-          <div className="mx-auto max-w-6xl px-3 py-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mx-auto max-w-6xl px-3 py-2">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="text-xs text-white/80">🎵 Música</div>
               <div className="text-[11px] text-white/50">Un espacio para nosotros</div>
             </div>

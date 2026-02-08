@@ -13,6 +13,7 @@ type EventRow = {
   cover_url: string | null;
   status: "planned" | "done";
   created_at: string;
+  date_start: string | null;
 };
 
 type PhotoRow = {
@@ -20,6 +21,14 @@ type PhotoRow = {
   event_id: string;
   user_id: string;
   photo_url: string;
+  created_at: string;
+};
+
+type VideoRow = {
+  id: string;
+  event_id: string;
+  user_id: string;
+  video_url: string;
   created_at: string;
 };
 
@@ -33,6 +42,58 @@ type ReviewRow = {
   profiles?: { display_name: string } | null;
 };
 
+const QUITO_TZ = "America/Guayaquil";
+
+// Formato bonito: "8 feb 2026, 16:00"
+function formatQuitoDateTime(iso: string) {
+  return new Intl.DateTimeFormat("es-EC", {
+    timeZone: QUITO_TZ,
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(iso));
+}
+
+// Solo hora: "16:00"
+function formatQuitoTime(iso: string) {
+  return new Intl.DateTimeFormat("es-EC", {
+    timeZone: QUITO_TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+// yyyy-mm-dd EN QUITO (para comparar días en el calendario)
+function ymdInQuito(d: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: QUITO_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+
+  const y = parts.find((p) => p.type === "year")?.value ?? "0000";
+  const m = parts.find((p) => p.type === "month")?.value ?? "00";
+  const da = parts.find((p) => p.type === "day")?.value ?? "00";
+  return `${y}-${m}-${da}`;
+}
+
+// Convierte un ISO a "Date local" pero representando el DÍA de Quito (para pintar en DayPicker)
+function quitoDayAsLocalDate(iso: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: QUITO_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(iso));
+
+  const y = Number(parts.find((p) => p.type === "year")?.value ?? "1970");
+  const m = Number(parts.find((p) => p.type === "month")?.value ?? "01");
+  const da = Number(parts.find((p) => p.type === "day")?.value ?? "01");
+
+  // OJO: esto crea una Date en local, pero con el mismo “día calendario Quito”
+  return new Date(y, m - 1, da);
+}
+
 
 function clsx(...arr: Array<string | false | undefined | null>) {
   return arr.filter(Boolean).join(" ");
@@ -45,16 +106,42 @@ function Stars({ value }: { value: number }) {
       {Array.from({ length: 5 }).map((_, i) => (
         <span
           key={i}
-          className={clsx(
-            "text-sm",
-            i < v ? "text-amber-200" : "text-white/20"
-          )}
+          className={clsx("text-sm", i < v ? "text-amber-200" : "text-white/20")}
         >
           ★
         </span>
       ))}
     </div>
   );
+}
+
+function makeId() {
+  return crypto.randomUUID();
+}
+
+async function uploadVideoToStorage(eventId: string, file: File) {
+  const ext = file.name.split(".").pop() || "mp4";
+  const path = `event-videos/${eventId}/${makeId()}.${ext}`;
+
+  const { error } = await supabase.storage.from("videos").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("videos").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function getStoragePathFromPublicUrl(publicUrl: string, bucket: string) {
+  try {
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const idx = publicUrl.indexOf(marker);
+    if (idx === -1) return null;
+    return publicUrl.substring(idx + marker.length);
+  } catch {
+    return null;
+  }
 }
 
 export default function EventDetailPage() {
@@ -64,12 +151,18 @@ export default function EventDetailPage() {
 
   const [event, setEvent] = useState<EventRow | null>(null);
   const [photos, setPhotos] = useState<PhotoRow[]>([]);
+  const [videos, setVideos] = useState<VideoRow[]>([]);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Lightbox
+  // Lightbox fotos
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Videos
+  const [videoFiles, setVideoFiles] = useState<FileList | null>(null);
+  const [uploadingVideos, setUploadingVideos] = useState(false);
+  const [videoModalUrl, setVideoModalUrl] = useState<string | null>(null);
 
   const activeUrl = useMemo(() => {
     if (photos.length === 0) return null;
@@ -78,7 +171,9 @@ export default function EventDetailPage() {
   }, [photos, activeIndex]);
 
   const avgRating = useMemo(() => {
-    const nums = reviews.map((r) => r.rating).filter((x): x is number => typeof x === "number");
+    const nums = reviews
+      .map((r) => r.rating)
+      .filter((x): x is number => typeof x === "number");
     if (nums.length === 0) return null;
     const sum = nums.reduce((a, b) => a + b, 0);
     return Math.round((sum / nums.length) * 10) / 10;
@@ -117,14 +212,21 @@ export default function EventDetailPage() {
     setPhotos((pData ?? []) as PhotoRow[]);
     setActiveIndex(0);
 
+    const { data: vData } = await supabase
+      .from("videos")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: false });
+
+    setVideos((vData ?? []) as VideoRow[]);
+
     const { data: rData } = await supabase
-  .from("reviews")
-  .select("*, profiles(display_name)")
-  .eq("event_id", eventId)
-  .order("created_at", { ascending: false });
+      .from("reviews")
+      .select("*, profiles(display_name)")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: false });
 
-setReviews((rData ?? []) as ReviewRow[]);
-
+    setReviews((rData ?? []) as ReviewRow[]);
 
     setLoading(false);
   }
@@ -137,6 +239,68 @@ setReviews((rData ?? []) as ReviewRow[]);
   function next() {
     if (photos.length === 0) return;
     setActiveIndex((i) => (i + 1) % photos.length);
+  }
+
+  async function uploadVideos() {
+    if (!eventId || !videoFiles || videoFiles.length === 0) return;
+
+    const uid = await ensureSession();
+    if (!uid) return;
+
+    setUploadingVideos(true);
+    try {
+      for (const f of Array.from(videoFiles)) {
+        if (!f.type.startsWith("video/")) continue;
+
+        // límite recomendado para que cargue bien
+        if (f.size > 80 * 1024 * 1024) {
+          alert(`El video "${f.name}" es muy pesado (máx 80MB).`);
+          continue;
+        }
+
+        const url = await uploadVideoToStorage(eventId, f);
+
+        const { error } = await supabase.from("videos").insert({
+          event_id: eventId,
+          user_id: uid,
+          video_url: url,
+        });
+
+        if (error) throw error;
+      }
+
+      setVideoFiles(null);
+
+      const { data: vData } = await supabase
+        .from("videos")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: false });
+
+      setVideos((vData ?? []) as VideoRow[]);
+    } catch (err: any) {
+      alert(err?.message ?? "Error subiendo videos");
+    } finally {
+      setUploadingVideos(false);
+    }
+  }
+
+  async function deleteVideo(v: VideoRow) {
+    const ok = confirm("¿Eliminar este video?");
+    if (!ok) return;
+
+    await supabase.from("videos").delete().eq("id", v.id);
+
+    const path = getStoragePathFromPublicUrl(v.video_url, "videos");
+    if (path) await supabase.storage.from("videos").remove([path]);
+
+    const { data: vData } = await supabase
+      .from("videos")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: false });
+
+    setVideos((vData ?? []) as VideoRow[]);
   }
 
   useEffect(() => {
@@ -159,7 +323,9 @@ setReviews((rData ?? []) as ReviewRow[]);
   if (loading) {
     return (
       <main className="min-h-screen text-white">
-        <div className="mx-auto max-w-6xl px-6 py-10 text-white/70">Cargando...</div>
+        <div className="mx-auto max-w-6xl px-6 py-10 text-white/70">
+          Cargando...
+        </div>
       </main>
     );
   }
@@ -224,21 +390,15 @@ setReviews((rData ?? []) as ReviewRow[]);
           <div className="relative h-[320px] bg-black/30">
             {event.cover_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={event.cover_url}
-                alt="cover"
-                className="h-full w-full object-cover"
-              />
+              <img src={event.cover_url} alt="cover" className="h-full w-full object-cover" />
             ) : (
               <div className="h-full w-full grid place-items-center text-white/50">
                 Sin portada
               </div>
             )}
 
-            {/* overlay gradient */}
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.05),rgba(0,0,0,0.72))]" />
 
-            {/* chips */}
             <div className="absolute left-5 top-5 flex flex-wrap gap-2">
               <span className="rounded-full border border-pink-200/25 bg-pink-500/15 px-3 py-1 text-xs text-pink-100 backdrop-blur">
                 Realizada ✅
@@ -246,12 +406,14 @@ setReviews((rData ?? []) as ReviewRow[]);
               <span className="rounded-full border border-cyan-200/25 bg-cyan-500/15 px-3 py-1 text-xs text-cyan-100 backdrop-blur">
                 {photos.length} fotos
               </span>
+              <span className="rounded-full border border-violet-200/25 bg-violet-500/15 px-3 py-1 text-xs text-violet-100 backdrop-blur">
+                {videos.length} videos
+              </span>
               <span className="rounded-full border border-amber-200/25 bg-amber-500/15 px-3 py-1 text-xs text-amber-100 backdrop-blur">
                 {reviews.length} reseñas
               </span>
             </div>
 
-            {/* title */}
             <div className="absolute bottom-0 left-0 right-0 p-6">
               <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
                 {event.title}
@@ -323,7 +485,6 @@ setReviews((rData ?? []) as ReviewRow[]);
                   </div>
                 ) : (
                   <>
-                    {/* Masonry usando columns */}
                     <div className="mt-5 columns-1 sm:columns-2 lg:columns-3 gap-3 [column-fill:_balance]">
                       {photos.map((p, idx) => (
                         <button
@@ -396,13 +557,12 @@ setReviews((rData ?? []) as ReviewRow[]);
                           </div>
 
                           <div className="text-xs text-white/60">
-  Por <span className="text-white/85 font-medium">
-    {r.profiles?.display_name ?? "Usuario"}
-  </span>
-</div>
+                            Por{" "}
+                            <span className="text-white/85 font-medium">
+                              {r.profiles?.display_name ?? "Usuario"}
+                            </span>
+                          </div>
 
-
-                          {/* avatar placeholder */}
                           <div className="h-10 w-10 shrink-0 rounded-2xl border border-white/10 bg-black/20 grid place-items-center text-sm">
                             ✨
                           </div>
@@ -421,11 +581,91 @@ setReviews((rData ?? []) as ReviewRow[]);
                 </div>
               </aside>
             </div>
+
+            {/* VIDEOS */}
+            <section className="mt-6 rounded-[26px] border border-white/10 bg-black/20 p-5">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="text-lg font-semibold">🎞️ Videos</div>
+                  <div className="text-xs text-white/55">
+                    Sube videos cortos de la salida y quedan guardados aquí.
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+                  {videos.length} videos
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-3xl border border-white/10 bg-white/5 p-4">
+                <div className="text-xs text-white/60 mb-2">Subir videos (mp4/webm)</div>
+                <input
+                  type="file"
+                  accept="video/*"
+                  multiple
+                  onChange={(e) => setVideoFiles(e.target.files)}
+                  className="text-sm"
+                />
+
+                <button
+                  disabled={uploadingVideos || !videoFiles || videoFiles.length === 0}
+                  onClick={uploadVideos}
+                  className="mt-3 w-full rounded-2xl border border-white/15 bg-white/5 py-2.5 text-sm text-white/85 hover:bg-white/10 disabled:opacity-60"
+                >
+                  {uploadingVideos ? "Subiendo..." : "Subir videos"}
+                </button>
+
+                <div className="mt-2 text-[11px] text-white/50">
+                  Recomendación: videos cortitos para que carguen rápido.
+                </div>
+              </div>
+
+              {videos.length === 0 ? (
+                <div className="mt-4 text-sm text-white/70">Aún no hay videos.</div>
+              ) : (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {videos.map((v) => (
+                    <div
+                      key={v.id}
+                      className="group relative overflow-hidden rounded-3xl border border-white/10 bg-black/20"
+                    >
+                      <button
+                        onClick={() => setVideoModalUrl(v.video_url)}
+                        className="block w-full"
+                        title="Ver"
+                      >
+                        <div className="relative">
+                          <video
+                            src={v.video_url}
+                            className="h-52 w-full object-cover"
+                            preload="metadata"
+                            muted
+                          />
+                          <div className="absolute inset-0 grid place-items-center">
+                            <div className="rounded-full border border-white/15 bg-black/45 px-4 py-2 text-sm text-white/90 backdrop-blur">
+                              ▶ Ver
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => deleteVideo(v)}
+                        className="absolute right-3 top-3 rounded-full border border-white/12 bg-black/45 px-3 py-1 text-xs text-white/85 hover:bg-black/60 backdrop-blur"
+                        title="Eliminar"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         </div>
       </div>
 
-      {/* LIGHTBOX */}
+      {/* LIGHTBOX FOTOS */}
       {lightboxOpen && photos.length > 0 && (
         <div className="fixed inset-0 z-50 grid place-items-center p-4">
           <div
@@ -434,7 +674,6 @@ setReviews((rData ?? []) as ReviewRow[]);
           />
 
           <div className="relative w-full max-w-6xl">
-            {/* top controls */}
             <div className="absolute -top-12 left-0 right-0 flex items-center justify-between gap-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1 text-xs text-white/70 backdrop-blur">
                 📸 {activeIndex + 1} / {photos.length}
@@ -457,7 +696,6 @@ setReviews((rData ?? []) as ReviewRow[]);
                 ←
               </button>
 
-              {/* image */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={activeUrl as string}
@@ -474,7 +712,6 @@ setReviews((rData ?? []) as ReviewRow[]);
               </button>
             </div>
 
-            {/* mobile controls */}
             <div className="mt-3 grid grid-cols-2 gap-2 sm:hidden">
               <button
                 onClick={prev}
@@ -488,6 +725,30 @@ setReviews((rData ?? []) as ReviewRow[]);
               >
                 Siguiente →
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL VIDEO */}
+      {videoModalUrl && (
+        <div className="fixed inset-0 z-50 grid place-items-center p-4">
+          <div className="absolute inset-0 bg-black/80" onClick={() => setVideoModalUrl(null)} />
+          <div className="relative w-full max-w-5xl">
+            <button
+              onClick={() => setVideoModalUrl(null)}
+              className="absolute -top-10 right-0 rounded-xl border border-white/12 bg-black/40 px-3 py-1 text-sm text-white/80 hover:bg-white/5 backdrop-blur"
+            >
+              Cerrar
+            </button>
+
+            <div className="rounded-3xl border border-white/10 bg-black/40 overflow-hidden">
+              <video
+                src={videoModalUrl}
+                className="w-full max-h-[85vh] object-contain"
+                controls
+                autoPlay
+              />
             </div>
           </div>
         </div>
